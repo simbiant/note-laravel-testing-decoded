@@ -3,6 +3,7 @@
     "require": { "laravel/framework": "4.0.*" },
     "require-dev": { "phpunit/phpunit": "3.7.*" },
     "autoload": {
-        "files": [ "app/helpers.php" ]
+        "files": [ "app/helpers.php" ],
+        "classmap": [ "app/Calculator.php"]
     }
 }
