@@ -38,3 +38,11 @@ Generalize as a way to specify when it's necessary to remove slime, in favor of 
 * Instantiate the class.
 * Call the desired method.
 * Write an assertion.
+
+## Polymorphism
+* Too many conditionals are cause for concern.
+* We can add another method to the class and update the `switch` statement.
+
+## Mocks
+* Unit testing requires isolation !!!!!!!!!.
+* The smaller the class, the easier it is to test.
