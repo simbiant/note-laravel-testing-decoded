@@ -1,118 +1,121 @@
 <?php
 
-namespace Illuminate\Tests\Support;
-
-use ReflectionObject;
-use IteratorAggregate;
 use Illuminate\Support\Fluent;
-use PHPUnit\Framework\TestCase;
 
-class SupportFluentTest extends TestCase
-{
-    public function testAttributesAreSetByConstructor()
-    {
-        $array = ['name' => 'Taylor', 'age' => 25];
-        $fluent = new Fluent($array);
+class SupportFluentTest extends PHPUnit_Framework_TestCase {
 
-        $refl = new ReflectionObject($fluent);
-        $attributes = $refl->getProperty('attributes');
-        $attributes->setAccessible(true);
+	public function testAttributesAreSetByConstructor()
+	{
+		$array  = array('name' => 'Taylor', 'age' => 25);
+		$fluent = new Fluent($array);
 
-        $this->assertEquals($array, $attributes->getValue($fluent));
-        $this->assertEquals($array, $fluent->getAttributes());
-    }
+		$refl = new \ReflectionObject($fluent);
+		$attributes = $refl->getProperty('attributes');
+		$attributes->setAccessible(true);
 
-    public function testAttributesAreSetByConstructorGivenStdClass()
-    {
-        $array = ['name' => 'Taylor', 'age' => 25];
-        $fluent = new Fluent((object) $array);
+		$this->assertEquals($array, $attributes->getValue($fluent));
+		$this->assertEquals($array, $fluent->getAttributes());
+	}
 
-        $refl = new ReflectionObject($fluent);
-        $attributes = $refl->getProperty('attributes');
-        $attributes->setAccessible(true);
 
-        $this->assertEquals($array, $attributes->getValue($fluent));
-        $this->assertEquals($array, $fluent->getAttributes());
-    }
+	public function testAttributesAreSetByConstructorGivenStdClass()
+	{
+		$array  = array('name' => 'Taylor', 'age' => 25);
+		$fluent = new Fluent((object) $array);
 
-    public function testAttributesAreSetByConstructorGivenArrayIterator()
-    {
-        $array = ['name' => 'Taylor', 'age' => 25];
-        $fluent = new Fluent(new FluentArrayIteratorStub($array));
+		$refl = new \ReflectionObject($fluent);
+		$attributes = $refl->getProperty('attributes');
+		$attributes->setAccessible(true);
 
-        $refl = new ReflectionObject($fluent);
-        $attributes = $refl->getProperty('attributes');
-        $attributes->setAccessible(true);
+		$this->assertEquals($array, $attributes->getValue($fluent));
+		$this->assertEquals($array, $fluent->getAttributes());
+	}
 
-        $this->assertEquals($array, $attributes->getValue($fluent));
-        $this->assertEquals($array, $fluent->getAttributes());
-    }
 
-    public function testGetMethodReturnsAttribute()
-    {
-        $fluent = new Fluent(['name' => 'Taylor']);
+	public function testAttributesAreSetByConstructorGivenArrayIterator()
+	{
+		$array  = array('name' => 'Taylor', 'age' => 25);
+		$fluent = new Fluent(new FluentArrayIteratorStub($array));
 
-        $this->assertEquals('Taylor', $fluent->get('name'));
-        $this->assertEquals('Default', $fluent->get('foo', 'Default'));
-        $this->assertEquals('Taylor', $fluent->name);
-        $this->assertNull($fluent->foo);
-    }
+		$refl = new \ReflectionObject($fluent);
+		$attributes = $refl->getProperty('attributes');
+		$attributes->setAccessible(true);
 
-    public function testMagicMethodsCanBeUsedToSetAttributes()
-    {
-        $fluent = new Fluent;
+		$this->assertEquals($array, $attributes->getValue($fluent));
+		$this->assertEquals($array, $fluent->getAttributes());
+	}
 
-        $fluent->name = 'Taylor';
-        $fluent->developer();
-        $fluent->age(25);
 
-        $this->assertEquals('Taylor', $fluent->name);
-        $this->assertTrue($fluent->developer);
-        $this->assertEquals(25, $fluent->age);
-        $this->assertInstanceOf('Illuminate\Support\Fluent', $fluent->programmer());
-    }
+	public function testGetMethodReturnsAttribute()
+	{
+		$fluent = new Fluent(array('name' => 'Taylor'));
 
-    public function testIssetMagicMethod()
-    {
-        $array = ['name' => 'Taylor', 'age' => 25];
-        $fluent = new Fluent($array);
+		$this->assertEquals('Taylor', $fluent->get('name'));
+		$this->assertEquals('Default', $fluent->get('foo', 'Default'));
+		$this->assertEquals('Taylor', $fluent->name);
+		$this->assertNull($fluent->foo);
+	}
 
-        $this->assertTrue(isset($fluent->name));
 
-        unset($fluent->name);
+	public function testMagicMethodsCanBeUsedToSetAttributes()
+	{
+		$fluent = new Fluent;
 
-        $this->assertFalse(isset($fluent->name));
-    }
+		$fluent->name = 'Taylor';
+		$fluent->developer();
+		$fluent->age(25);
 
-    public function testToArrayReturnsAttribute()
-    {
-        $array = ['name' => 'Taylor', 'age' => 25];
-        $fluent = new Fluent($array);
+		$this->assertEquals('Taylor', $fluent->name);
+		$this->assertTrue($fluent->developer);
+		$this->assertEquals(25, $fluent->age);
+		$this->assertInstanceOf('Illuminate\Support\Fluent', $fluent->programmer());
+	}
 
-        $this->assertEquals($array, $fluent->toArray());
-    }
 
-    public function testToJsonEncodesTheToArrayResult()
-    {
-        $fluent = $this->getMockBuilder('Illuminate\Support\Fluent')->setMethods(['toArray'])->getMock();
-        $fluent->expects($this->once())->method('toArray')->will($this->returnValue('foo'));
-        $results = $fluent->toJson();
+	public function testIssetMagicMethod()
+	{
+		$array  = array('name' => 'Taylor', 'age' => 25);
+		$fluent = new Fluent($array);
 
-        $this->assertJsonStringEqualsJsonString(json_encode('foo'), $results);
-    }
+		$this->assertTrue(isset($fluent->name));
+
+		unset($fluent->name);
+
+		$this->assertFalse(isset($fluent->name));
+	}
+
+
+	public function testToArrayReturnsAttribute()
+	{
+		$array  = array('name' => 'Taylor', 'age' => 25);
+		$fluent = new Fluent($array);
+
+		$this->assertEquals($array, $fluent->toArray());
+	}
+
+
+	public function testToJsonEncodesTheToArrayResult()
+	{
+		$fluent = $this->getMock('Illuminate\Support\Fluent', array('toArray'));
+		$fluent->expects($this->once())->method('toArray')->will($this->returnValue('foo'));
+		$results = $fluent->toJson();
+
+		$this->assertEquals(json_encode('foo'), $results);
+	}
+
 }
 
-class FluentArrayIteratorStub implements IteratorAggregate
-{
-    protected $items = [];
 
-    public function __construct(array $items = [])
-    {
-        $this->items = (array) $items;
-    }
+class FluentArrayIteratorStub implements \IteratorAggregate {
+	protected $items = array();
 
-    public function getIterator()
-    {
-        return new \ArrayIterator($this->items);
-    }
+	public function __construct(array $items = array())
+	{
+		$this->items = (array) $items;
+	}
+
+	public function getIterator()
+	{
+		return new \ArrayIterator($this->items);
+	}
 }

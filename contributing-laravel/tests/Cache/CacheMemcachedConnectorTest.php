@@ -1,140 +1,39 @@
 <?php
 
-namespace Illuminate\Tests\Cache;
-
-use Memcached;
 use Mockery as m;
-use PHPUnit\Framework\TestCase;
 
-class CacheMemcachedConnectorTest extends TestCase
-{
-    public function tearDown()
-    {
-        m::close();
-    }
+class CacheMemcachedConnectorTest extends PHPUnit_Framework_TestCase {
 
-    public function testServersAreAddedCorrectly()
-    {
-        $memcached = $this->memcachedMockWithAddServer();
+	public function tearDown()
+	{
+		m::close();
+	}
 
-        $connector = $this->connectorMock();
-        $connector->expects($this->once())
-            ->method('createMemcachedInstance')
-            ->will($this->returnValue($memcached));
 
-        $result = $this->connect($connector);
+	public function testServersAreAddedCorrectly()
+	{
+		$connector = $this->getMock('Illuminate\Cache\MemcachedConnector', array('getMemcached'));
+		$memcached = m::mock('stdClass');
+		$memcached->shouldReceive('addServer')->once()->with('localhost', 11211, 100);
+		$memcached->shouldReceive('getVersion')->once()->andReturn(true);
+		$connector->expects($this->once())->method('getMemcached')->will($this->returnValue($memcached));
+		$result = $connector->connect(array(array('host' => 'localhost', 'port' => 11211, 'weight' => 100)));
 
-        $this->assertSame($result, $memcached);
-    }
+		$this->assertSame($result, $memcached);
+	}
 
-    public function testServersAreAddedCorrectlyWithPersistentConnection()
-    {
-        $persistentConnectionId = 'persistent_connection_id';
 
-        $memcached = $this->memcachedMockWithAddServer();
+	/**
+	 * @expectedException RuntimeException
+	 */
+	public function testExceptionThrownOnBadConnection()
+	{
+		$connector = $this->getMock('Illuminate\Cache\MemcachedConnector', array('getMemcached'));
+		$memcached = m::mock('stdClass');
+		$memcached->shouldReceive('addServer')->once()->with('localhost', 11211, 100);
+		$memcached->shouldReceive('getVersion')->once()->andReturn(false);
+		$connector->expects($this->once())->method('getMemcached')->will($this->returnValue($memcached));
+		$result = $connector->connect(array(array('host' => 'localhost', 'port' => 11211, 'weight' => 100)));
+	}
 
-        $connector = $this->connectorMock();
-        $connector->expects($this->once())
-            ->method('createMemcachedInstance')
-            ->with($persistentConnectionId)
-            ->will($this->returnValue($memcached));
-
-        $result = $this->connect($connector, $persistentConnectionId);
-
-        $this->assertSame($result, $memcached);
-    }
-
-    public function testServersAreAddedCorrectlyWithValidOptions()
-    {
-        if (! class_exists('Memcached')) {
-            $this->markTestSkipped('Memcached module not installed');
-        }
-
-        $validOptions = [
-            Memcached::OPT_NO_BLOCK => true,
-            Memcached::OPT_CONNECT_TIMEOUT => 2000,
-        ];
-
-        $memcached = $this->memcachedMockWithAddServer();
-        $memcached->shouldReceive('setOptions')->once()->andReturn(true);
-
-        $connector = $this->connectorMock();
-        $connector->expects($this->once())
-            ->method('createMemcachedInstance')
-            ->will($this->returnValue($memcached));
-
-        $result = $this->connect($connector, false, $validOptions);
-
-        $this->assertSame($result, $memcached);
-    }
-
-    public function testServersAreAddedCorrectlyWithSaslCredentials()
-    {
-        if (! class_exists('Memcached')) {
-            $this->markTestSkipped('Memcached module not installed');
-        }
-
-        $saslCredentials = ['foo', 'bar'];
-
-        $memcached = $this->memcachedMockWithAddServer();
-        $memcached->shouldReceive('setOption')->once()->with(Memcached::OPT_BINARY_PROTOCOL, true)->andReturn(true);
-        $memcached->shouldReceive('setSaslAuthData')
-            ->once()->with($saslCredentials[0], $saslCredentials[1])
-            ->andReturn(true);
-
-        $connector = $this->connectorMock();
-        $connector->expects($this->once())->method('createMemcachedInstance')->will($this->returnValue($memcached));
-
-        $result = $this->connect($connector, false, [], $saslCredentials);
-
-        $this->assertSame($result, $memcached);
-    }
-
-    protected function memcachedMockWithAddServer($returnedVersion = [])
-    {
-        $memcached = m::mock('stdClass');
-        $memcached->shouldReceive('addServer')->once()->with($this->getHost(), $this->getPort(), $this->getWeight());
-        $memcached->shouldReceive('getServerList')->once()->andReturn([]);
-
-        return $memcached;
-    }
-
-    protected function connectorMock()
-    {
-        return $this->getMockBuilder('Illuminate\Cache\MemcachedConnector')->setMethods(['createMemcachedInstance'])->getMock();
-    }
-
-    protected function connect(
-        $connector,
-        $persistentConnectionId = false,
-        array $customOptions = [],
-        array $saslCredentials = []
-    ) {
-        return $connector->connect(
-            $this->getServers(),
-            $persistentConnectionId,
-            $customOptions,
-            $saslCredentials
-        );
-    }
-
-    protected function getServers()
-    {
-        return [['host' => $this->getHost(), 'port' => $this->getPort(), 'weight' => $this->getWeight()]];
-    }
-
-    protected function getHost()
-    {
-        return 'localhost';
-    }
-
-    protected function getPort()
-    {
-        return 11211;
-    }
-
-    protected function getWeight()
-    {
-        return 100;
-    }
 }

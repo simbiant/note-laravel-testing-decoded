@@ -1,26 +1,26 @@
 <?php
 
-namespace Illuminate\Tests\Foundation;
-
-use PHPUnit\Framework\TestCase;
 use Illuminate\Foundation\AliasLoader;
 
-class FoundationAliasLoaderTest extends TestCase
-{
-    public function testLoaderCanBeCreatedAndRegisteredOnce()
-    {
-        $loader = AliasLoader::getInstance(['foo' => 'bar']);
+class FoundationAliasLoaderTest extends PHPUnit_Framework_TestCase {
 
-        $this->assertEquals(['foo' => 'bar'], $loader->getAliases());
-        $this->assertFalse($loader->isRegistered());
-        $loader->register();
+	public function testLoaderCanBeCreatedAndRegisteredOnce()
+	{
+		$loader = $this->getMock('Illuminate\Foundation\AliasLoader', array('prependToLoaderStack'), array(array('foo' => 'bar')));
+		$loader->expects($this->once())->method('prependToLoaderStack');
 
-        $this->assertTrue($loader->isRegistered());
-    }
+		$this->assertEquals(array('foo' => 'bar'), $loader->getAliases());
+		$this->assertFalse($loader->isRegistered());
+		$loader->register();
 
-    public function testGetInstanceCreatesOneInstance()
-    {
-        $loader = AliasLoader::getInstance(['foo' => 'bar']);
-        $this->assertSame($loader, AliasLoader::getInstance());
-    }
+		$this->assertTrue($loader->isRegistered());
+	}
+
+
+	public function testGetInstanceCreatesOneInstance()
+	{
+		$loader = AliasLoader::getInstance(array('foo' => 'bar'));
+		$this->assertEquals($loader, AliasLoader::getInstance());
+	}
+
 }

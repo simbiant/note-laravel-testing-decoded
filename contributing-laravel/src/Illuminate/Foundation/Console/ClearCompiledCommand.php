@@ -1,38 +1,39 @@
-<?php
-
-namespace Illuminate\Foundation\Console;
+<?php namespace Illuminate\Foundation\Console;
 
 use Illuminate\Console\Command;
 
-class ClearCompiledCommand extends Command
-{
-    /**
-     * The console command name.
-     *
-     * @var string
-     */
-    protected $name = 'clear-compiled';
+class ClearCompiledCommand extends Command {
 
-    /**
-     * The console command description.
-     *
-     * @var string
-     */
-    protected $description = 'Remove the compiled class file';
+	/**
+	 * The console command name.
+	 *
+	 * @var string
+	 */
+	protected $name = 'clear-compiled';
 
-    /**
-     * Execute the console command.
-     *
-     * @return void
-     */
-    public function fire()
-    {
-        $servicesPath = $this->laravel->getCachedServicesPath();
+	/**
+	 * The console command description.
+	 *
+	 * @var string
+	 */
+	protected $description = "Remove the compiled class file";
 
-        if (file_exists($servicesPath)) {
-            @unlink($servicesPath);
-        }
+	/**
+	 * Execute the console command.
+	 *
+	 * @return void
+	 */
+	public function fire()
+	{
+		if (file_exists($path = $this->laravel['path.base'].'/bootstrap/compiled.php'))
+		{
+			@unlink($path);
+		}
 
-        $this->info('The compiled services file has been removed.');
-    }
+		if (file_exists($path = $this->laravel['config']['app.manifest'].'/services.json'))
+		{
+			@unlink($path);
+		}
+	}
+
 }

@@ -1,29 +1,14 @@
 <?php
 
-namespace Illuminate\Tests\Cache;
-
 use Illuminate\Cache\NullStore;
-use PHPUnit\Framework\TestCase;
 
-class CacheNullStoreTest extends TestCase
-{
-    public function testItemsCanNotBeCached()
-    {
-        $store = new NullStore;
-        $store->put('foo', 'bar', 10);
-        $this->assertNull($store->get('foo'));
-    }
+class CacheNullStoreTest extends PHPUnit_Framework_TestCase {
 
-    public function testGetMultipleReturnsMultipleNulls()
-    {
-        $store = new NullStore;
+	public function testItemsCanNotBeCached()
+	{
+		$store = new NullStore;
+		$store->put('foo', 'bar', 10);
+		$this->assertNull($store->get('foo'));
+	}
 
-        $this->assertEquals([
-            'foo'   => null,
-            'bar'   => null,
-        ], $store->many([
-            'foo',
-            'bar',
-        ]));
-    }
 }

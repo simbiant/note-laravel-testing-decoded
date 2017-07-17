@@ -1,35 +1,33 @@
-<?php
+<?php namespace Illuminate\Queue\Console;
 
-namespace Illuminate\Queue\Console;
-
-use Carbon\Carbon;
 use Illuminate\Console\Command;
 
-class RestartCommand extends Command
-{
-    /**
-     * The console command name.
-     *
-     * @var string
-     */
-    protected $name = 'queue:restart';
+class RestartCommand extends Command {
 
-    /**
-     * The console command description.
-     *
-     * @var string
-     */
-    protected $description = 'Restart queue worker daemons after their current job';
+	/**
+	 * The console command name.
+	 *
+	 * @var string
+	 */
+	protected $name = 'queue:restart';
 
-    /**
-     * Execute the console command.
-     *
-     * @return void
-     */
-    public function fire()
-    {
-        $this->laravel['cache']->forever('illuminate:queue:restart', Carbon::now()->getTimestamp());
+	/**
+	 * The console command description.
+	 *
+	 * @var string
+	 */
+	protected $description = "Restart queue worker daemons after their current job.";
 
-        $this->info('Broadcasting queue restart signal.');
-    }
+	/**
+	 * Execute the console command.
+	 *
+	 * @return void
+	 */
+	public function fire()
+	{
+		$this->laravel['cache']->forever('illuminate:queue:restart', time());
+
+		$this->info('Broadcasting queue restart signal.');
+	}
+
 }

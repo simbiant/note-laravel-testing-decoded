@@ -1,247 +1,243 @@
-<?php
+<?php namespace Illuminate\Console;
 
-namespace Illuminate\Console;
-
-use Closure;
-use Illuminate\Contracts\Events\Dispatcher;
-use Symfony\Component\Process\ProcessUtils;
-use Illuminate\Contracts\Container\Container;
 use Symfony\Component\Console\Input\ArrayInput;
+use Symfony\Component\Console\Output\NullOutput;
 use Symfony\Component\Console\Input\InputOption;
-use Symfony\Component\Process\PhpExecutableFinder;
-use Symfony\Component\Console\Output\BufferedOutput;
-use Symfony\Component\Console\Application as SymfonyApplication;
+use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Command\Command as SymfonyCommand;
-use Illuminate\Contracts\Console\Application as ApplicationContract;
 
-class Application extends SymfonyApplication implements ApplicationContract
-{
-    /**
-     * The Laravel application instance.
-     *
-     * @var \Illuminate\Contracts\Container\Container
-     */
-    protected $laravel;
+class Application extends \Symfony\Component\Console\Application {
 
-    /**
-     * The output from the previous command.
-     *
-     * @var \Symfony\Component\Console\Output\BufferedOutput
-     */
-    protected $lastOutput;
+	/**
+	 * The exception handler instance.
+	 *
+	 * @var \Illuminate\Exception\Handler
+	 */
+	protected $exceptionHandler;
 
-    /**
-     * The console application bootstrappers.
-     *
-     * @var array
-     */
-    protected static $bootstrappers = [];
+	/**
+	 * The Laravel application instance.
+	 *
+	 * @var \Illuminate\Foundation\Application
+	 */
+	protected $laravel;
 
-    /**
-     * Create a new Artisan console application.
-     *
-     * @param  \Illuminate\Contracts\Container\Container  $laravel
-     * @param  \Illuminate\Contracts\Events\Dispatcher  $events
-     * @param  string  $version
-     * @return void
-     */
-    public function __construct(Container $laravel, Dispatcher $events, $version)
-    {
-        parent::__construct('Laravel Framework', $version);
+	/**
+	 * Create and boot a new Console application.
+	 *
+	 * @param  \Illuminate\Foundation\Application  $app
+	 * @return \Illuminate\Console\Application
+	 */
+	public static function start($app)
+	{
+		return static::make($app)->boot();
+	}
 
-        $this->laravel = $laravel;
-        $this->setAutoExit(false);
-        $this->setCatchExceptions(false);
+	/**
+	 * Create a new Console application.
+	 *
+	 * @param  \Illuminate\Foundation\Application  $app
+	 * @return \Illuminate\Console\Application
+	 */
+	public static function make($app)
+	{
+		$app->boot();
 
-        $events->dispatch(new Events\ArtisanStarting($this));
+		$console = with($console = new static('Laravel Framework', $app::VERSION))
+								->setLaravel($app)
+								->setExceptionHandler($app['exception'])
+								->setAutoExit(false);
 
-        $this->bootstrap();
-    }
+		$app->instance('artisan', $console);
 
-    /**
-     * Determine the proper PHP executable.
-     *
-     * @return string
-     */
-    public static function phpBinary()
-    {
-        return ProcessUtils::escapeArgument((new PhpExecutableFinder)->find(false));
-    }
+		return $console;
+	}
 
-    /**
-     * Determine the proper Artisan executable.
-     *
-     * @return string
-     */
-    public static function artisanBinary()
-    {
-        return defined('ARTISAN_BINARY') ? ProcessUtils::escapeArgument(ARTISAN_BINARY) : 'artisan';
-    }
+	/**
+	 * Boot the Console application.
+	 *
+	 * @return $this
+	 */
+	public function boot()
+	{
+		$path = $this->laravel['path'].'/start/artisan.php';
 
-    /**
-     * Format the given command as a fully-qualified executable command.
-     *
-     * @param  string  $string
-     * @return string
-     */
-    public static function formatCommandString($string)
-    {
-        return sprintf('%s %s %s', static::phpBinary(), static::artisanBinary(), $string);
-    }
+		if (file_exists($path))
+		{
+			require $path;
+		}
 
-    /**
-     * Register a console "starting" bootstrapper.
-     *
-     * @param  \Closure  $callback
-     * @return void
-     */
-    public static function starting(Closure $callback)
-    {
-        static::$bootstrappers[] = $callback;
-    }
+		// If the event dispatcher is set on the application, we will fire an event
+		// with the Artisan instance to provide each listener the opportunity to
+		// register their commands on this application before it gets started.
+		if (isset($this->laravel['events']))
+		{
+			$this->laravel['events']
+					->fire('artisan.start', array($this));
+		}
 
-    /**
-     * Bootstrap the console application.
-     *
-     * @return void
-     */
-    protected function bootstrap()
-    {
-        foreach (static::$bootstrappers as $bootstrapper) {
-            $bootstrapper($this);
-        }
-    }
+		return $this;
+	}
 
-    /*
-     * Clear the console application bootstrappers.
-     *
-     * @return void
-     */
-    public static function forgetBootstrappers()
-    {
-        static::$bootstrappers = [];
-    }
+	/**
+	 * Run an Artisan console command by name.
+	 *
+	 * @param  string  $command
+	 * @param  array   $parameters
+	 * @param  \Symfony\Component\Console\Output\OutputInterface  $output
+	 * @return void
+	 */
+	public function call($command, array $parameters = array(), OutputInterface $output = null)
+	{
+		$parameters['command'] = $command;
 
-    /**
-     * Run an Artisan console command by name.
-     *
-     * @param  string  $command
-     * @param  array  $parameters
-     * @param  \Symfony\Component\Console\Output\OutputInterface  $outputBuffer
-     * @return int
-     */
-    public function call($command, array $parameters = [], $outputBuffer = null)
-    {
-        $parameters = collect($parameters)->prepend($command);
+		// Unless an output interface implementation was specifically passed to us we
+		// will use the "NullOutput" implementation by default to keep any writing
+		// suppressed so it doesn't leak out to the browser or any other source.
+		$output = $output ?: new NullOutput;
 
-        $this->lastOutput = $outputBuffer ?: new BufferedOutput;
+		$input = new ArrayInput($parameters);
 
-        $this->setCatchExceptions(false);
+		return $this->find($command)->run($input, $output);
+	}
 
-        $result = $this->run(new ArrayInput($parameters->toArray()), $this->lastOutput);
+	/**
+	 * Add a command to the console.
+	 *
+	 * @param  \Symfony\Component\Console\Command\Command  $command
+	 * @return \Symfony\Component\Console\Command\Command
+	 */
+	public function add(SymfonyCommand $command)
+	{
+		if ($command instanceof Command)
+		{
+			$command->setLaravel($this->laravel);
+		}
 
-        $this->setCatchExceptions(true);
+		return $this->addToParent($command);
+	}
 
-        return $result;
-    }
+	/**
+	 * Add the command to the parent instance.
+	 *
+	 * @param  \Symfony\Component\Console\Command\Command  $command
+	 * @return \Symfony\Component\Console\Command\Command
+	 */
+	protected function addToParent(SymfonyCommand $command)
+	{
+		return parent::add($command);
+	}
 
-    /**
-     * Get the output for the last run command.
-     *
-     * @return string
-     */
-    public function output()
-    {
-        return $this->lastOutput ? $this->lastOutput->fetch() : '';
-    }
+	/**
+	 * Add a command, resolving through the application.
+	 *
+	 * @param  string  $command
+	 * @return \Symfony\Component\Console\Command\Command
+	 */
+	public function resolve($command)
+	{
+		return $this->add($this->laravel[$command]);
+	}
 
-    /**
-     * Add a command to the console.
-     *
-     * @param  \Symfony\Component\Console\Command\Command  $command
-     * @return \Symfony\Component\Console\Command\Command
-     */
-    public function add(SymfonyCommand $command)
-    {
-        if ($command instanceof Command) {
-            $command->setLaravel($this->laravel);
-        }
+	/**
+	 * Resolve an array of commands through the application.
+	 *
+	 * @param  array|mixed  $commands
+	 * @return void
+	 */
+	public function resolveCommands($commands)
+	{
+		$commands = is_array($commands) ? $commands : func_get_args();
 
-        return $this->addToParent($command);
-    }
+		foreach ($commands as $command)
+		{
+			$this->resolve($command);
+		}
+	}
 
-    /**
-     * Add the command to the parent instance.
-     *
-     * @param  \Symfony\Component\Console\Command\Command  $command
-     * @return \Symfony\Component\Console\Command\Command
-     */
-    protected function addToParent(SymfonyCommand $command)
-    {
-        return parent::add($command);
-    }
+	/**
+	 * Get the default input definitions for the applications.
+	 *
+	 * @return \Symfony\Component\Console\Input\InputDefinition
+	 */
+	protected function getDefaultInputDefinition()
+	{
+		$definition = parent::getDefaultInputDefinition();
 
-    /**
-     * Add a command, resolving through the application.
-     *
-     * @param  string  $command
-     * @return \Symfony\Component\Console\Command\Command
-     */
-    public function resolve($command)
-    {
-        return $this->add($this->laravel->make($command));
-    }
+		$definition->addOption($this->getEnvironmentOption());
 
-    /**
-     * Resolve an array of commands through the application.
-     *
-     * @param  array|mixed  $commands
-     * @return $this
-     */
-    public function resolveCommands($commands)
-    {
-        $commands = is_array($commands) ? $commands : func_get_args();
+		return $definition;
+	}
 
-        foreach ($commands as $command) {
-            $this->resolve($command);
-        }
+	/**
+	 * Get the global environment option for the definition.
+	 *
+	 * @return \Symfony\Component\Console\Input\InputOption
+	 */
+	protected function getEnvironmentOption()
+	{
+		$message = 'The environment the command should run under.';
 
-        return $this;
-    }
+		return new InputOption('--env', null, InputOption::VALUE_OPTIONAL, $message);
+	}
 
-    /**
-     * Get the default input definitions for the applications.
-     *
-     * This is used to add the --env option to every available command.
-     *
-     * @return \Symfony\Component\Console\Input\InputDefinition
-     */
-    protected function getDefaultInputDefinition()
-    {
-        return tap(parent::getDefaultInputDefinition(), function ($definition) {
-            $definition->addOption($this->getEnvironmentOption());
-        });
-    }
+	/**
+	 * Render the given exception.
+	 *
+	 * @param  \Exception  $e
+	 * @param  \Symfony\Component\Console\Output\OutputInterface  $output
+	 * @return void
+	 */
+	public function renderException($e, $output)
+	{
+		// If we have an exception handler instance, we will call that first in case
+		// it has some handlers that need to be run first. We will pass "true" as
+		// the second parameter to indicate that it's handling a console error.
+		if (isset($this->exceptionHandler))
+		{
+			$this->exceptionHandler->handleConsole($e);
+		}
 
-    /**
-     * Get the global environment option for the definition.
-     *
-     * @return \Symfony\Component\Console\Input\InputOption
-     */
-    protected function getEnvironmentOption()
-    {
-        $message = 'The environment the command should run under';
+		parent::renderException($e, $output);
+	}
 
-        return new InputOption('--env', null, InputOption::VALUE_OPTIONAL, $message);
-    }
+	/**
+	 * Set the exception handler instance.
+	 *
+	 * @param  \Illuminate\Exception\Handler  $handler
+	 * @return $this
+	 */
+	public function setExceptionHandler($handler)
+	{
+		$this->exceptionHandler = $handler;
 
-    /**
-     * Get the Laravel application instance.
-     *
-     * @return \Illuminate\Contracts\Foundation\Application
-     */
-    public function getLaravel()
-    {
-        return $this->laravel;
-    }
+		return $this;
+	}
+
+	/**
+	 * Set the Laravel application instance.
+	 *
+	 * @param  \Illuminate\Foundation\Application  $laravel
+	 * @return $this
+	 */
+	public function setLaravel($laravel)
+	{
+		$this->laravel = $laravel;
+
+		return $this;
+	}
+
+	/**
+	 * Set whether the Console app should auto-exit when done.
+	 *
+	 * @param  bool  $boolean
+	 * @return $this
+	 */
+	public function setAutoExit($boolean)
+	{
+		parent::setAutoExit($boolean);
+
+		return $this;
+	}
+
 }

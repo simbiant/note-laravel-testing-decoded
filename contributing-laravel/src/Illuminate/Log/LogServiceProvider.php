@@ -1,154 +1,55 @@
-<?php
+<?php namespace Illuminate\Log;
 
-namespace Illuminate\Log;
-
-use Monolog\Logger as Monolog;
+use Monolog\Logger;
 use Illuminate\Support\ServiceProvider;
 
-class LogServiceProvider extends ServiceProvider
-{
-    /**
-     * Register the service provider.
-     *
-     * @return void
-     */
-    public function register()
-    {
-        $this->app->singleton('log', function () {
-            return $this->createLogger();
-        });
-    }
+class LogServiceProvider extends ServiceProvider {
 
-    /**
-     * Create the logger.
-     *
-     * @return \Illuminate\Log\Writer
-     */
-    public function createLogger()
-    {
-        $log = new Writer(
-            new Monolog($this->channel()), $this->app['events']
-        );
+	/**
+	 * Indicates if loading of the provider is deferred.
+	 *
+	 * @var bool
+	 */
+	protected $defer = true;
 
-        if ($this->app->hasMonologConfigurator()) {
-            call_user_func($this->app->getMonologConfigurator(), $log->getMonolog());
-        } else {
-            $this->configureHandler($log);
-        }
+	/**
+	 * Register the service provider.
+	 *
+	 * @return void
+	 */
+	public function register()
+	{
+		$logger = new Writer(
+			new Logger($this->app['env']), $this->app['events']
+		);
 
-        return $log;
-    }
+		// Once we have an instance of the logger we'll bind it as an instance into
+		// the container so that it is available for resolution. We'll also bind
+		// the PSR Logger interface to resolve to this Monolog implementation.
+		$this->app->instance('log', $logger);
 
-    /**
-     * Get the name of the log "channel".
-     *
-     * @return string
-     */
-    protected function channel()
-    {
-        return $this->app->bound('env') ? $this->app->environment() : 'production';
-    }
+		$this->app->bind('Psr\Log\LoggerInterface', function($app)
+		{
+			return $app['log']->getMonolog();
+		});
 
-    /**
-     * Configure the Monolog handlers for the application.
-     *
-     * @param  \Illuminate\Log\Writer  $log
-     * @return void
-     */
-    protected function configureHandler(Writer $log)
-    {
-        $this->{'configure'.ucfirst($this->handler()).'Handler'}($log);
-    }
+		// If the setup Closure has been bound in the container, we will resolve it
+		// and pass in the logger instance. This allows this to defer all of the
+		// logger class setup until the last possible second, improving speed.
+		if (isset($this->app['log.setup']))
+		{
+			call_user_func($this->app['log.setup'], $logger);
+		}
+	}
 
-    /**
-     * Configure the Monolog handlers for the application.
-     *
-     * @param  \Illuminate\Log\Writer  $log
-     * @return void
-     */
-    protected function configureSingleHandler(Writer $log)
-    {
-        $log->useFiles(
-            $this->app->storagePath().'/logs/laravel.log',
-            $this->logLevel()
-        );
-    }
+	/**
+	 * Get the services provided by the provider.
+	 *
+	 * @return array
+	 */
+	public function provides()
+	{
+		return array('log', 'Psr\Log\LoggerInterface');
+	}
 
-    /**
-     * Configure the Monolog handlers for the application.
-     *
-     * @param  \Illuminate\Log\Writer  $log
-     * @return void
-     */
-    protected function configureDailyHandler(Writer $log)
-    {
-        $log->useDailyFiles(
-            $this->app->storagePath().'/logs/laravel.log', $this->maxFiles(),
-            $this->logLevel()
-        );
-    }
-
-    /**
-     * Configure the Monolog handlers for the application.
-     *
-     * @param  \Illuminate\Log\Writer  $log
-     * @return void
-     */
-    protected function configureSyslogHandler(Writer $log)
-    {
-        $log->useSyslog('laravel', $this->logLevel());
-    }
-
-    /**
-     * Configure the Monolog handlers for the application.
-     *
-     * @param  \Illuminate\Log\Writer  $log
-     * @return void
-     */
-    protected function configureErrorlogHandler(Writer $log)
-    {
-        $log->useErrorLog($this->logLevel());
-    }
-
-    /**
-     * Get the default log handler.
-     *
-     * @return string
-     */
-    protected function handler()
-    {
-        if ($this->app->bound('config')) {
-            return $this->app->make('config')->get('app.log', 'single');
-        }
-
-        return 'single';
-    }
-
-    /**
-     * Get the log level for the application.
-     *
-     * @return string
-     */
-    protected function logLevel()
-    {
-        if ($this->app->bound('config')) {
-            return $this->app->make('config')->get('app.log_level', 'debug');
-        }
-
-        return 'debug';
-    }
-
-    /**
-     * Get the maximum number of log files for the application.
-     *
-     * @return int
-     */
-    protected function maxFiles()
-    {
-        if ($this->app->bound('config')) {
-            return $this->app->make('config')->get('app.log_max_files', 5);
-        }
-
-        return 0;
-    }
 }
