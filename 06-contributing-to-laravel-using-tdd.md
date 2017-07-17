@@ -15,10 +15,4 @@ git checkout -b bug/messages-posted-twice
 ```
 
 ## Coding Guidelines
-
-```
-foreach ($names as $name)
-{
-    // CORRECT
-}
-```
+* PSR-4
