@@ -1,0 +1,8 @@
+contributing-laravel/vendor
+contributing-laravel/composer.phar
+contributing-laravel/composer.lock
+contributing-laravel/.php_cs.cache
+contributing-laravel/.DS_Store
+contributing-laravel/Thumbs.db
+contributing-laravel/phpunit.xml
+contributing-laravel/.idea
