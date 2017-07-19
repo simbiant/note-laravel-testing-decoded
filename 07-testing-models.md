@@ -81,3 +81,32 @@ public function testGetsOldestUser()
 ## Validations
 * use `Validate` Facade
 * See `model-testing-practice`
+
+## Helper
+* See `model-testing-practice/helpers/Helpers.php`
+
+## Factories
+* Laravel can create an object with all of the necessary fields, and insert it to the DB.
+* We also need to have the option of overriding one or more fields’ default value.
+
+## Laravel Test Helpers
+* A Factory utility.
+* Various Model test helpers (assertValid, assertBelongsTo, etc).
+* Assert and Should PHPUnit wrappers.
+
+### Factories
+##### Models
+```
+$user = Factory::user(['default' => null]);
+$user = Factory::make(Models\User::class, ['default' => null]);
+$user = Factory::create(Models\User::class, ['default' => null]);
+````
+
+### Test Helpers
+##### assertValid and assertNotValid
+* See `model-testing-practice/helpers/ModelHelpers.php`
+
+##### Asserting Relationships
+* `assertBelongsTo()`
+* `assertHasOne()`
+* `assertHasMany()`
