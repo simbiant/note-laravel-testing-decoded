@@ -1,0 +1,15 @@
+{
+    "name": "lyon/generators",
+    "authors": [
+        {
+            "name": "ZHANGXIANGLIANG",
+            "email": "326277403@qq.com"
+        }
+    ],
+    "require": {},
+    "autoload": {
+        "psr-4": {
+            "Way\\Generators" : "src/"
+        }
+    }
+}

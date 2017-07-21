@@ -23,3 +23,38 @@ The process of testing a controller (or any class, really) can be divided into t
 * assertRedirectedToAction
 * assertSessionHas
 * assertSessionHasErrors
+
+## Mocking the Database
+* See `09-test-database.md`
+
+## Required Refactoring
+* Move the class to `__construct()`.
+* Use `$app->instance` and `mockery`
+
+## The IoC Container
+Laravel’s IoC container drastically eases the process of injecting dependencies into your classes.
+
+```
+$this->app->instance('Post', $this->mock);
+```
+
+## Redirections
+```
+$this->assertRedirectedToRoute('posts.index');
+```
+
+## Paths
+There should be two separate paths through the `store` method, dependent upon whether the validation passes:
+* Redirect back to `Create Post` form, and display the form validation errors.
+* Redirect to the collection, or the named route `posts.index`.
+* Use `assertRedirectedToRoute` and `assertSessionHasErrors`.
+
+## Repositories
+Repositories represent the data access layer of your application.
+
+## BaseModel
+* See `controllers-tesing\app\Models\BaseModel.php`
+
+## Ensure View Contains Text
+Because Laravel offers Symfony’s `DomCrawler` component out of the box, if needed, you also have the ability to inspect the DOM when calling routes.
+
