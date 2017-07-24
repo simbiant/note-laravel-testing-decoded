@@ -1,0 +1,7 @@
+modules:
+  config:
+    Db:
+      dsn: 'mysql:host=localhost;dbname=TEST_DB_NAME'
+      user: 'USERNAME'
+      password: 'PASSWORD'
+      dump: app/tests/_data/dump.sql
